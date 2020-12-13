@@ -6,7 +6,13 @@ package chiaro.WebServer;
  */
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 
 public class WebServer implements Runnable { 	
     static final File standardFile = new File("");
@@ -70,6 +76,10 @@ public class WebServer implements Runnable {
         BufferedOutputStream dataOut = null;
         String fileRequested = null;
         
+        // Serialization/deserialization
+        ObjectMapper objectMapper = new ObjectMapper();
+        XmlMapper xmlMapper = new XmlMapper();
+        
         try 
         {
         	// Input and Output
@@ -117,6 +127,26 @@ public class WebServer implements Runnable {
                 File file = new File(WEB_ROOT, fileRequested);
                 int fileLength = (int) file.length();
                 String content = getContentType(fileRequested);
+                
+                if (fileRequested.contains("puntiVendita.json")) {
+                	
+                	String jsonString = null;
+                	
+                	try {
+						jsonString = readFileAsString("resources/puntiVendita.json");
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+                	
+                	List<PuntoVendita> listPuntiVendita = objectMapper.readValue(jsonString, new TypeReference<List<PuntoVendita>>(){});
+                	ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                    xmlMapper.writeValue(byteArrayOutputStream, listPuntiVendita);
+                    
+                    file = new File("puntiVendita.xml");
+                    fileLength = (int) file.length();
+                    content = "text/xml";
+                }
+
                 
                 if (method.equals("GET"))
                 { 
@@ -293,6 +323,11 @@ public class WebServer implements Runnable {
         {
             System.out.println("Directory " + directory + " hint sended");
         }
+    }
+    
+    public static String readFileAsString(String file)throws Exception
+    {
+        return new String(Files.readAllBytes(Paths.get(file)));
     }
 
 }
